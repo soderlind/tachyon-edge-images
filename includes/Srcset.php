@@ -25,7 +25,7 @@ final class Srcset {
 	 * @return array
 	 */
 	public static function filter( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
-		$upload_dir = wp_upload_dir();
+		$upload_base_url = Facts::get()->upload_base_url();
 
 		foreach ( $sources as $i => $source ) {
 			if ( ! Images::validate_image_url( $source['url'] ) ) {
@@ -37,7 +37,7 @@ final class Srcset {
 
 			// It's quicker to get the full size with the data we have already, if available.
 			if ( isset( $image_meta['file'] ) ) {
-				$url = trailingslashit( $upload_dir['baseurl'] ) . $image_meta['file'];
+				$url = trailingslashit( $upload_base_url ) . $image_meta['file'];
 			} else {
 				$url = Images::strip_image_dimensions_maybe( $url );
 			}
@@ -65,7 +65,7 @@ final class Srcset {
 			 */
 			$args = apply_filters( 'tachyon_srcset_image_args', $args, compact( 'source', 'image_meta', 'width', 'height', 'attachment_id' ) );
 
-			$sources[ $i ]['url'] = tachyon_url( $url, $args );
+			$sources[ $i ]['url'] = Url::build( $url, $args );
 		}
 
 		return $sources;

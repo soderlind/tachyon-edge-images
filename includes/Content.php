@@ -24,11 +24,12 @@ final class Content {
 		$images = Images::parse_images_from_html( $content );
 
 		if ( ! empty( $images ) ) {
-			$content_width = isset( $GLOBALS['content_width'] ) ? $GLOBALS['content_width'] : false;
+			$facts         = Facts::get();
+			$content_width = $facts->content_width();
 
-			$image_sizes    = Images::image_sizes();
-			$upload_dir     = wp_upload_dir();
-			$attachment_ids = [];
+			$image_sizes     = $facts->sizes();
+			$upload_base_url = $facts->upload_base_url();
+			$attachment_ids  = [];
 
 			foreach ( $images[0] as $tag ) {
 				if ( preg_match( '/wp-image-([0-9]+)/i', $tag, $class_id ) && absint( $class_id[1] ) ) {
@@ -39,7 +40,7 @@ final class Content {
 
 			if ( count( $attachment_ids ) > 1 ) {
 				// Warm the object cache with post and meta information for all found images.
-				_prime_post_caches( array_keys( $attachment_ids ), false, true );
+				$facts->prime_attachments( array_keys( $attachment_ids ) );
 			}
 
 			foreach ( $images[0] as $index => $tag ) {
@@ -121,7 +122,7 @@ final class Content {
 						$size = array_pop( $matches );
 
 						if ( false === $width && false === $height && isset( $size ) && array_key_exists( $size, $image_sizes ) ) {
-							$size_from_wp = wp_get_attachment_image_src( $attachment_id, $size );
+							$size_from_wp = $facts->source( $attachment_id, $size );
 							// Deviation 3: the Reference Plugin read offsets on false (a warning) and got null.
 							// Keep null, so later branches and filter arguments match.
 							$width  = is_array( $size_from_wp ) ? $size_from_wp[1] : null;
@@ -134,7 +135,7 @@ final class Content {
 					if (
 						preg_match( '#class=["|\']?[^"\']*wp-image-([\d]+)[^"\']*["|\']?#i', $images['img_tag'][ $index ], $class_attachment_id ) &&
 						(
-							0 === strpos( $src, $upload_dir['baseurl'] ) ||
+							0 === strpos( $src, $upload_base_url ) ||
 							/**
 							 * Filter whether an image using an attachment ID in its class has to be uploaded to the local site to go through Tachyon.
 							 *
@@ -147,15 +148,13 @@ final class Content {
 						$class_attachment_id = intval( array_pop( $class_attachment_id ) );
 
 						if ( $class_attachment_id ) {
-							$attachment = get_post( $class_attachment_id );
-							// Basic check on returned post object.
-							if ( is_object( $attachment ) && ! is_wp_error( $attachment ) && 'attachment' === $attachment->post_type ) {
-								$attachment_id = $attachment->ID;
+							if ( $facts->is_attachment( $class_attachment_id ) ) {
+								$attachment_id = $class_attachment_id;
 
 								// If we still don't have a size for the image, use the attachment_id
 								// to lookup the size for the image in the URL.
 								if ( ! isset( $size ) ) {
-									$meta = wp_get_attachment_metadata( $attachment_id );
+									$meta = $facts->metadata( $attachment_id );
 									// Deviation 3: guard against missing or invalid size metadata.
 									if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
 										$sizes = wp_list_filter( $meta['sizes'], [ 'file' => basename( $src ) ] );
@@ -171,7 +170,7 @@ final class Content {
 								if ( ! isset( $size ) && $width && $height ) {
 									$sizes = array_keys( $image_sizes );
 									foreach ( $sizes as $size ) {
-										$size_per_wp = wp_get_attachment_image_src( $attachment_id, $size );
+										$size_per_wp = $facts->source( $attachment_id, $size );
 										// Deviation 3: guard against a missing image source.
 										if ( is_array( $size_per_wp ) && isset( $size_per_wp[1], $size_per_wp[2] ) && $width === $size_per_wp[1] && $height === $size_per_wp[2] ) {
 											$transform = $image_sizes[ $size ]['crop'] ? 'resize' : 'fit';
@@ -194,7 +193,7 @@ final class Content {
 								 */
 								$size = isset( $size ) ? $size : 'full';
 
-								$src_per_wp = wp_get_attachment_image_src( $attachment_id, $size );
+								$src_per_wp = $facts->source( $attachment_id, $size );
 
 								// Deviation 3: guard against a missing image source.
 								if ( is_array( $src_per_wp ) && isset( $src_per_wp[0], $src_per_wp[1], $src_per_wp[2] ) && Images::validate_image_url( $src_per_wp[0] ) ) {
@@ -217,8 +216,6 @@ final class Content {
 										$transform = (bool) $image_sizes[ $size ]['crop'] ? 'resize' : 'fit';
 									}
 								}
-							} else {
-								unset( $attachment );
 							}
 						}
 					}
@@ -310,7 +307,7 @@ final class Content {
 					 */
 					$args = apply_filters( 'tachyon_post_image_args', $args, compact( 'tag', 'src', 'src_orig', 'width', 'height', 'attachment_id', 'size' ) );
 
-					$tachyon_url = tachyon_url( $src, $args );
+					$tachyon_url = Url::build( $src, $args );
 
 					// Modify image tag if Tachyon function provides a URL.
 					// Ensure changes are only applied to the current image by copying and modifying the matched tag, then replacing the entire tag with our modified version.
@@ -328,7 +325,7 @@ final class Content {
 
 						// If Lazy Load is in use, pass placeholder image through Tachyon.
 						if ( isset( $placeholder_src ) && Images::validate_image_url( $placeholder_src ) ) {
-							$placeholder_src = tachyon_url( $placeholder_src );
+							$placeholder_src = Url::build( $placeholder_src );
 
 							if ( $placeholder_src !== $placeholder_src_orig ) {
 								$new_tag = str_replace( $placeholder_src_orig, esc_url( $placeholder_src ), $new_tag );
@@ -422,7 +419,7 @@ final class Content {
 		return preg_replace_callback(
 			$pattern,
 			static function ( $matches ) use ( $link_url ) {
-				return $matches[1] . tachyon_url( $link_url ) . $matches[2];
+				return $matches[1] . Url::build( $link_url ) . $matches[2];
 			},
 			$tag,
 			1

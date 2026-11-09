@@ -33,3 +33,7 @@ _Avoid_: takeover, conflict mode
 
 **Edge-only Feature**:
 An opt-in feature that only works when the Tachyon Server is Tachyon Edge.
+
+**Image Facts**:
+What WordPress knows about the site's images: registered image sizes, attachment metadata and sources, the content width, the uploads URL, and WordPress's own size calculations. Tachyon Edge Images decides Tachyon arguments from Image Facts and never changes them.
+_Avoid_: image data, media info, site state

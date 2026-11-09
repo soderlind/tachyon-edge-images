@@ -9,6 +9,7 @@ use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Soderlind\Plugin\TachyonEdgeImages\Tests\Support\QueryArgs;
 use Soderlind\Plugin\TachyonEdgeImages\Url;
 
 final class UrlTest extends TestCase {
@@ -21,8 +22,8 @@ final class UrlTest extends TestCase {
 		Functions\when( 'wp_upload_dir' )->justReturn( [ 'baseurl' => self::UPLOADS ] );
 		Functions\when( 'is_multisite' )->justReturn( false );
 		Functions\when( 'tachyon_server_version' )->alias( [ Url::class, 'server_version' ] );
-		Functions\when( 'add_query_arg' )->alias( [ self::class, 'add_query_arg' ] );
-		Functions\when( 'remove_query_arg' )->alias( [ self::class, 'remove_query_arg' ] );
+		Functions\when( 'add_query_arg' )->alias( [ QueryArgs::class, 'add_query_arg' ] );
+		Functions\when( 'remove_query_arg' )->alias( [ QueryArgs::class, 'remove_query_arg' ] );
 	}
 
 	protected function tearDown(): void {
@@ -134,31 +135,5 @@ final class UrlTest extends TestCase {
 	#[DataProvider( 'tachyon_urls' )]
 	public function test_is_tachyon_url( string $url, bool $expected ): void {
 		$this->assertSame( $expected, Url::is_tachyon_url( $url ) );
-	}
-
-	/**
-	 * Minimal add_query_arg(): ( array $args, string $url ) or ( string $key, mixed $value, string $url ).
-	 */
-	public static function add_query_arg( mixed ...$a ): string {
-		[ $args, $url ] = is_array( $a[0] ) ? [ $a[0], $a[1] ] : [ [ $a[0] => $a[1] ], $a[2] ];
-		[ $base, $query ] = array_pad( explode( '?', $url, 2 ), 2, '' );
-		$pairs = [];
-		foreach ( array_filter( explode( '&', $query ) ) as $pair ) {
-			[ $k, $v ] = array_pad( explode( '=', $pair, 2 ), 2, '' );
-			$pairs[ $k ] = $v;
-		}
-		foreach ( $args as $k => $v ) {
-			$pairs[ $k ] = $v;
-		}
-		$query = implode( '&', array_map( static fn ( $k, $v ) => "$k=$v", array_keys( $pairs ), $pairs ) );
-
-		return $base . ( '' === $query ? '' : '?' . $query );
-	}
-
-	public static function remove_query_arg( string $key, string $url ): string {
-		[ $base, $query ] = array_pad( explode( '?', $url, 2 ), 2, '' );
-		$pairs = array_filter( explode( '&', $query ), static fn ( $p ) => '' !== $p && explode( '=', $p, 2 )[0] !== $key );
-
-		return $base . ( $pairs ? '?' . implode( '&', $pairs ) : '' );
 	}
 }

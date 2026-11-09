@@ -29,13 +29,6 @@ final class Images {
 	];
 
 	/**
-	 * Cached image sizes. Like the Reference Plugin, filled on first use.
-	 *
-	 * @var array|null
-	 */
-	private static $image_sizes = null;
-
-	/**
 	 * Match all images and any relevant <a> tags in a block of HTML.
 	 *
 	 * @param string $content Some HTML.
@@ -131,49 +124,7 @@ final class Images {
 	 * @return array
 	 */
 	public static function image_sizes() {
-		if ( null === self::$image_sizes ) {
-			global $_wp_additional_image_sizes;
-
-			// Populate an array matching the data structure of $_wp_additional_image_sizes so we have a consistent structure for image sizes.
-			$images = [
-				'thumb'        => [
-					'width'  => intval( get_option( 'thumbnail_size_w' ) ),
-					'height' => intval( get_option( 'thumbnail_size_h' ) ),
-					'crop'   => (bool) get_option( 'thumbnail_crop' ),
-				],
-				'medium'       => [
-					'width'  => intval( get_option( 'medium_size_w' ) ),
-					'height' => intval( get_option( 'medium_size_h' ) ),
-					'crop'   => false,
-				],
-				'medium_large' => [
-					'width'  => intval( get_option( 'medium_large_size_w' ) ),
-					'height' => intval( get_option( 'medium_large_size_h' ) ),
-					'crop'   => false,
-				],
-				'large'        => [
-					'width'  => intval( get_option( 'large_size_w' ) ),
-					'height' => intval( get_option( 'large_size_h' ) ),
-					'crop'   => false,
-				],
-				'full'         => [
-					'width'  => null,
-					'height' => null,
-					'crop'   => false,
-				],
-			];
-
-			// Compatibility mapping as found in wp-includes/media.php.
-			$images['thumbnail'] = $images['thumb'];
-
-			if ( is_array( $_wp_additional_image_sizes ) && ! empty( $_wp_additional_image_sizes ) ) {
-				self::$image_sizes = array_merge( $images, $_wp_additional_image_sizes );
-			} else {
-				self::$image_sizes = $images;
-			}
-		}
-
-		return is_array( self::$image_sizes ) ? self::$image_sizes : [];
+		return Facts::get()->sizes();
 	}
 
 	/**
@@ -182,6 +133,6 @@ final class Images {
 	 * @return void
 	 */
 	public static function reset() {
-		self::$image_sizes = null;
+		Facts::swap( null );
 	}
 }

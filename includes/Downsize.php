@@ -44,8 +44,9 @@ final class Downsize {
 		}
 
 		// Get the image URL and proceed with Tachyon-ification if successful.
-		$image_url       = wp_get_attachment_url( $attachment_id );
-		$full_size_meta  = wp_get_attachment_metadata( $attachment_id );
+		$facts           = Facts::get();
+		$image_url       = $facts->url( $attachment_id );
+		$full_size_meta  = $facts->metadata( $attachment_id );
 		$is_intermediate = false;
 
 		if ( $image_url ) {
@@ -55,12 +56,12 @@ final class Downsize {
 			}
 
 			// If an image is requested with a size known to WordPress, use that size's settings with Tachyon.
-			if ( ! empty( $full_size_meta ) && ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, Images::image_sizes() ) ) {
-				$image_args = Images::image_sizes()[ $size ];
+			if ( ! empty( $full_size_meta ) && ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $facts->sizes() ) ) {
+				$image_args = $facts->sizes()[ $size ];
 
 				$tachyon_args = [];
 
-				$image_meta = image_get_intermediate_size( $attachment_id, $size );
+				$image_meta = $facts->intermediate( $attachment_id, $size );
 
 				// 'full' is a special case: We need consistent data regardless of the requested size.
 				if ( 'full' === $size ) {
@@ -70,7 +71,7 @@ final class Downsize {
 					// for an image that was uploaded before the custom image was added to the theme. Try to determine the size manually.
 					$image_meta = $full_size_meta;
 					if ( isset( $image_meta['width'] ) && isset( $image_meta['height'] ) ) {
-						$image_resized = image_resize_dimensions( $image_meta['width'], $image_meta['height'], $image_args['width'], $image_args['height'], $image_args['crop'] );
+						$image_resized = $facts->resize_dimensions( $image_meta['width'], $image_meta['height'], $image_args['width'], $image_args['height'], $image_args['crop'] );
 						if ( $image_resized ) { // This could be false when the requested image size is larger than the full-size image.
 							$image_meta['width']  = $image_resized[6];
 							$image_meta['height'] = $image_resized[7];
@@ -98,7 +99,7 @@ final class Downsize {
 				$image_args['height'] = min( (int) $image_args['height'], (int) $full_size_meta['height'] );
 
 				// Respect $content_width settings.
-				list( $width, $height ) = image_constrain_size_for_editor( $image_meta['width'], $image_meta['height'], $size, 'display' );
+				list( $width, $height ) = $facts->constrain( $image_meta['width'], $image_meta['height'], $size, 'display' );
 
 				// Check specified image dimensions and account for possible zero values; tachyon fails to resize if a dimension is zero.
 				if ( ( 0 === $image_args['width'] || 0 === $image_args['height'] ) && 'fit' !== $transform ) {
@@ -137,7 +138,7 @@ final class Downsize {
 
 				// Generate Tachyon URL.
 				$image = [
-					tachyon_url( $image_url, $tachyon_args ),
+					Url::build( $image_url, $tachyon_args ),
 					$width,
 					$height,
 					$is_intermediate,
@@ -152,9 +153,9 @@ final class Downsize {
 					return $image;
 				}
 
-				$image_meta = wp_get_attachment_metadata( $attachment_id );
+				$image_meta = $facts->metadata( $attachment_id );
 				if ( isset( $image_meta['width'] ) && isset( $image_meta['height'] ) ) {
-					$image_resized = image_resize_dimensions( $image_meta['width'], $image_meta['height'], $width, $height );
+					$image_resized = $facts->resize_dimensions( $image_meta['width'], $image_meta['height'], $width, $height );
 					if ( $image_resized ) {
 						// Use the resized image dimensions.
 						$width           = $image_resized[6];
@@ -167,7 +168,7 @@ final class Downsize {
 					}
 				}
 
-				list( $width, $height ) = image_constrain_size_for_editor( $width, $height, $size );
+				list( $width, $height ) = $facts->constrain( $width, $height, $size );
 
 				$tachyon_args = [];
 
@@ -185,7 +186,7 @@ final class Downsize {
 
 				// Generate Tachyon URL.
 				$image = [
-					tachyon_url( $image_url, $tachyon_args ),
+					Url::build( $image_url, $tachyon_args ),
 					$width,
 					$height,
 					$is_intermediate,
