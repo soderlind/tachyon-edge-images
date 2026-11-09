@@ -5,6 +5,7 @@
 ### Internal
 
 - The content, `image_downsize` and srcset paths read site data through Image Facts (ADR 0003), and have unit tests. No change in output.
+- `Content::filter()` is split into private steps (image source, dimensions, content width, Tachyon arguments, tag rewrite), with tests for tag rewriting. `gravity()` moved to `Images`. No change in output.
 
 ## [0.1.0] - 2026-11-09
 
