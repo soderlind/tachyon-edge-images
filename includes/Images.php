@@ -119,6 +119,32 @@ final class Images {
 	}
 
 	/**
+	 * Map a registered crop position to a Tachyon gravity.
+	 *
+	 * @param array $crop Crop position in x, y order.
+	 * @return string
+	 */
+	public static function gravity( array $crop ) {
+		$map = [
+			'top'    => 'north',
+			'center' => '',
+			'bottom' => 'south',
+			'left'   => 'west',
+			'right'  => 'east',
+		];
+
+		return implode(
+			'',
+			array_map(
+				static function ( $v ) use ( $map ) {
+					return $map[ $v ];
+				},
+				array_reverse( $crop )
+			)
+		);
+	}
+
+	/**
 	 * Available image sizes and their dimensions.
 	 *
 	 * @return array

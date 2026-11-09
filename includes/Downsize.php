@@ -124,7 +124,7 @@ final class Downsize {
 					}
 
 					if ( $is_intermediate && 'resize' === $transform && is_array( $image_args['crop'] ) ) {
-						$tachyon_args['gravity'] = Content::gravity( $image_args['crop'] );
+						$tachyon_args['gravity'] = Images::gravity( $image_args['crop'] );
 					}
 				}
 

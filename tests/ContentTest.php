@@ -167,6 +167,72 @@ final class ContentTest extends SizingTestCase {
 		$this->assertSame( $html, Content::filter( $html ) );
 	}
 
+	public function test_identical_tags_are_all_rewritten(): void {
+		// A Plugin Quirk: the rewritten tag replaces every copy in the content.
+		$img = self::img( 'photo-300x150.jpg' );
+
+		$out = Content::filter( $img . '<noscript>' . $img . '</noscript>' );
+
+		$this->assertSame( 2, substr_count( $out, self::TACHYON . '/2024/01/photo.jpg?resize=300%2C150' ) );
+		$this->assertStringNotContainsString( self::UPLOADS, $out );
+	}
+
+	public function test_photon_image_only_gets_its_link_rewritten(): void {
+		$html = '<a href="' . self::UPLOADS . '/2024/01/photo.jpg"><img src="https://i0.wp.com/example.com/photo.jpg"></a>';
+
+		$this->assertSame(
+			'<a href="' . self::TACHYON . '/2024/01/photo.jpg"><img src="https://i0.wp.com/example.com/photo.jpg"></a>',
+			Content::filter( $html )
+		);
+	}
+
+	public function test_link_url_with_special_characters_is_rewritten(): void {
+		// Deviation 1.
+		$html = '<a href="' . self::UPLOADS . '/2024/01/photo(1).jpg">' . self::img( 'photo-300x150.jpg' ) . '</a>';
+
+		$out = Content::filter( $html );
+
+		$this->assertStringStartsWith( '<a href="' . self::TACHYON . '/2024/01/photo%281%29.jpg">', $out );
+	}
+
+	public function test_size_lookup_starts_fresh_for_each_image(): void {
+		// Deviation 2: the second image matches on width only, not the first image's height.
+		$sizes = [];
+		Filters\expectApplied( 'tachyon_post_image_args' )->twice()->andReturnUsing(
+			static function ( $args, $details ) use ( &$sizes ) {
+				$sizes[] = $details['size'];
+				return $args;
+			}
+		);
+
+		Content::filter( self::img( 'photo-150x150.jpg' ) . self::img( 'photo.jpg', 'width="300"' ) );
+
+		$this->assertSame( [ 'thumb', 'medium' ], $sizes );
+	}
+
+	public function test_size_attributes_can_be_kept(): void {
+		Filters\expectApplied( 'tachyon_remove_size_attributes' )->andReturn( false );
+
+		$out = Content::filter( self::img( 'photo.jpg', 'width="400" height="200"' ) );
+
+		$this->assertSame( '<img src="' . self::TACHYON . '/2024/01/photo.jpg?resize=400%2C200" width="400" height="200" data-recalc-dims="1">', $out );
+	}
+
+	public function test_recalc_dims_goes_before_a_self_closing_slash(): void {
+		$out = Content::filter( self::img( 'photo-300x150.jpg', '/' ) );
+
+		$this->assertSame( '<img src="' . self::TACHYON . '/2024/01/photo.jpg?resize=300%2C150" data-recalc-dims="1" />', $out );
+	}
+
+	public function test_recalc_dims_goes_inside_a_link(): void {
+		$html = '<a href="https://example.org/page">' . self::img( 'photo-300x150.jpg' ) . '</a>';
+
+		$this->assertSame(
+			'<a href="https://example.org/page"><img src="' . self::TACHYON . '/2024/01/photo.jpg?resize=300%2C150" data-recalc-dims="1"></a>',
+			Content::filter( $html )
+		);
+	}
+
 	/**
 	 * Expect tachyon_post_image_args with these args, attachment ID and size.
 	 *
