@@ -73,7 +73,8 @@ interface ImageFacts {
 	 * @param int        $dest_w Requested width.
 	 * @param int        $dest_h Requested height.
 	 * @param bool|array $crop   Crop setting.
-	 * @return array|false Index 6 and 7 hold the new width and height.
+	 * @return array|false Index 4 and 5 hold the new width and height, index 6 and 7 the
+	 *                     source crop size (the original size when not cropping).
 	 */
 	public function resize_dimensions( $orig_w, $orig_h, $dest_w, $dest_h, $crop = false );
 

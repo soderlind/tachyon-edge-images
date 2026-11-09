@@ -45,6 +45,19 @@ final class DownsizeTest extends SizingTestCase {
 		$this->assertSame( [ $this->tachyon( 'fit=1024%2C1000' ), 1024, 512, true ], Downsize::filter( false, self::ID, 'large' ) );
 	}
 
+	public function test_missing_intermediate_is_constrained_from_the_source_crop_size(): void {
+		// A Plugin Quirk: Downsize reads offsets 6 and 7 (the source crop size), not 4 and 5.
+		$seen                   = [];
+		$this->facts->constrain = static function ( $w, $h ) use ( &$seen ) {
+			$seen = [ $w, $h ];
+			return [ $w, $h ];
+		};
+
+		Downsize::filter( false, self::ID, 'large' );
+
+		$this->assertSame( [ 2000, 1000 ], $seen );
+	}
+
 	public function test_does_not_upscale(): void {
 		$this->facts->metadata[ self::ID ] = [ 'file' => '2024/01/photo.jpg', 'width' => 800, 'height' => 400 ];
 

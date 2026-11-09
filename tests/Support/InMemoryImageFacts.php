@@ -71,8 +71,8 @@ final class InMemoryImageFacts implements ImageFacts {
 	}
 
 	/**
-	 * Proportional fit, or a crop with a missing side from the aspect ratio, never upscaling. False when the
-	 * result would not be smaller than the original, like WordPress.
+	 * WordPress's geometry: [ 0, 0, src_x, src_y, new_w, new_h, crop_w, crop_h ],
+	 * or false when the result would not be smaller than the original.
 	 */
 	public function resize_dimensions( $orig_w, $orig_h, $dest_w, $dest_h, $crop = false ) {
 		if ( $crop ) {
@@ -80,22 +80,68 @@ final class InMemoryImageFacts implements ImageFacts {
 			$new_h = min( (int) $dest_h, (int) $orig_h );
 			$new_w = $new_w ?: (int) round( $new_h * $orig_w / $orig_h );
 			$new_h = $new_h ?: (int) round( $new_w * $orig_h / $orig_w );
+
+			$ratio  = max( $new_w / $orig_w, $new_h / $orig_h );
+			$crop_w = (int) round( $new_w / $ratio );
+			$crop_h = (int) round( $new_h / $ratio );
+			$src_x  = (int) floor( ( $orig_w - $crop_w ) / 2 );
+			$src_y  = (int) floor( ( $orig_h - $crop_h ) / 2 );
 		} else {
-			$ratios = array_filter( [ $dest_w ? $dest_w / $orig_w : null, $dest_h ? $dest_h / $orig_h : null ] );
-			$ratio  = $ratios ? min( 1, min( $ratios ) ) : 1;
-			$new_w  = (int) round( $orig_w * $ratio );
-			$new_h  = (int) round( $orig_h * $ratio );
+			[ $new_w, $new_h ] = self::fit( (int) $orig_w, (int) $orig_h, (int) $dest_w, (int) $dest_h );
+
+			$crop_w = (int) $orig_w;
+			$crop_h = (int) $orig_h;
+			$src_x  = 0;
+			$src_y  = 0;
 		}
 
 		if ( $new_w >= $orig_w && $new_h >= $orig_h ) {
 			return false;
 		}
 
-		return [ 0, 0, 0, 0, $new_w, $new_h, $new_w, $new_h ];
+		return [ 0, 0, $src_x, $src_y, $new_w, $new_h, $crop_w, $crop_h ];
 	}
 
+	/**
+	 * Like image_constrain_size_for_editor(): fit inside the array size or the
+	 * registered size's box. Set $constrain to model $content_width or filters.
+	 */
 	public function constrain( $width, $height, $size, $context = null ) {
-		return $this->constrain ? ( $this->constrain )( $width, $height, $size, $context ) : [ $width, $height ];
+		if ( $this->constrain ) {
+			return ( $this->constrain )( $width, $height, $size, $context );
+		}
+
+		if ( is_array( $size ) ) {
+			[ $max_w, $max_h ] = [ (int) ( $size[0] ?? 0 ), (int) ( $size[1] ?? 0 ) ];
+		} elseif ( isset( $this->sizes[ $size ] ) ) {
+			[ $max_w, $max_h ] = [ (int) $this->sizes[ $size ]['width'], (int) $this->sizes[ $size ]['height'] ];
+		} else {
+			return [ $width, $height ];
+		}
+
+		return self::fit( (int) $width, (int) $height, $max_w, $max_h );
+	}
+
+	/**
+	 * Like wp_constrain_dimensions(): shrink to fit, never grow; 0 means no limit.
+	 *
+	 * @return int[]
+	 */
+	private static function fit( int $w, int $h, int $max_w, int $max_h ): array {
+		$ratios = [];
+		if ( $max_w && $w > $max_w ) {
+			$ratios[] = $max_w / $w;
+		}
+		if ( $max_h && $h > $max_h ) {
+			$ratios[] = $max_h / $h;
+		}
+		if ( ! $ratios ) {
+			return [ $w, $h ];
+		}
+
+		$ratio = min( $ratios );
+
+		return [ max( 1, (int) round( $w * $ratio ) ), max( 1, (int) round( $h * $ratio ) ) ];
 	}
 
 	public function content_width() {
