@@ -190,7 +190,7 @@ class Tachyon {
 	 * @return null|WP_Error|WP_REST_Response The original response without modification.
 	 */
 	public function should_rest_image_downsize( $response, $endpoint_data, $request ) {
-		return Rest::before( $response, [ $this, '_override_image_downsize_in_rest_edit_context' ], $request );
+		return Rest::shared()->before( $response, [ $this, '_override_image_downsize_in_rest_edit_context' ], $request );
 	}
 
 	/**
@@ -200,7 +200,7 @@ class Tachyon {
 	 * @return mixed Unchanged $response
 	 */
 	public function cleanup_rest_image_downsize( $response ) {
-		return Rest::after( $response, [ $this, '_override_image_downsize_in_rest_edit_context' ] );
+		return Rest::shared()->after( $response, [ $this, '_override_image_downsize_in_rest_edit_context' ] );
 	}
 
 	/**

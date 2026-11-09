@@ -6,6 +6,9 @@
  * context, and a nested REST request switched Tachyon back on too early. The
  * block editor also loads media in the view context, so it showed resized images.
  *
+ * This is the server half of Deviation 7. Editor enqueues the client half,
+ * assets/js/editor.js, which marks the editor's requests with EDITOR_HEADER.
+ *
  * @package TachyonEdgeImages
  */
 
@@ -24,11 +27,24 @@ final class Rest {
 	public const EDITOR_HEADER = 'x-wp-api-fetch-from-editor';
 
 	/**
+	 * The instance the facade uses. Tachyon cannot hold it, because its members
+	 * must match the Reference Plugin's.
+	 */
+	private static ?self $shared = null;
+
+	/**
 	 * One entry per REST request in progress; true when it disabled Tachyon.
 	 *
 	 * @var bool[]
 	 */
-	private static array $stack = [];
+	private array $stack = [];
+
+	/**
+	 * The instance the facade uses for this page load.
+	 */
+	public static function shared(): self {
+		return self::$shared ??= new self();
+	}
 
 	/**
 	 * Before a REST request runs: decide whether it gets original URLs.
@@ -38,15 +54,15 @@ final class Rest {
 	 * @param mixed    $request  The request.
 	 * @return mixed Unchanged $response.
 	 */
-	public static function before( mixed $response, callable $override, mixed $request ): mixed {
-		self::$stack[] = false;
+	public function before( mixed $response, callable $override, mixed $request ): mixed {
+		$this->stack[] = false;
 
 		if ( ! $request instanceof \WP_REST_Request || is_wp_error( $response ) ) {
 			return $response;
 		}
 
 		if ( self::is_media_edit_request( $request ) || self::is_editor_request( $request ) ) {
-			self::$stack[ array_key_last( self::$stack ) ] = true;
+			$this->stack[ array_key_last( $this->stack ) ] = true;
 			// Late priority, as in the Reference Plugin, to win over other plugins.
 			add_filter( 'tachyon_override_image_downsize', $override, 999999 );
 		}
@@ -61,20 +77,13 @@ final class Rest {
 	 * @param callable $override The facade's override callback.
 	 * @return mixed Unchanged $response.
 	 */
-	public static function after( mixed $response, callable $override ): mixed {
-		array_pop( self::$stack );
-		if ( ! in_array( true, self::$stack, true ) ) {
+	public function after( mixed $response, callable $override ): mixed {
+		array_pop( $this->stack );
+		if ( ! in_array( true, $this->stack, true ) ) {
 			remove_filter( 'tachyon_override_image_downsize', $override, 999999 );
 		}
 
 		return $response;
-	}
-
-	/**
-	 * Forget requests in progress. For tests.
-	 */
-	public static function reset(): void {
-		self::$stack = [];
 	}
 
 	/**
