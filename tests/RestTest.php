@@ -12,6 +12,8 @@ use WP_REST_Request;
 
 final class RestTest extends TestCase {
 
+	private Rest $rest;
+
 	private bool $active = false;
 
 	private bool $is_admin = false;
@@ -21,7 +23,7 @@ final class RestTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Rest::reset();
+		$this->rest          = new Rest();
 		$this->active        = false;
 		$this->is_admin      = false;
 		$this->editor_screen = false;
@@ -65,9 +67,9 @@ final class RestTest extends TestCase {
 
 	public function test_error_response_is_ignored(): void {
 		$override = [ self::class, 'override' ];
-		Rest::before( new \WP_Error( 'x' ), $override, new WP_REST_Request( '/wp/v2/media', [ 'context' => 'edit' ] ) );
+		$this->rest->before( new \WP_Error( 'x' ), $override, new WP_REST_Request( '/wp/v2/media', [ 'context' => 'edit' ] ) );
 		$this->assertFalse( $this->active );
-		Rest::after( null, $override );
+		$this->rest->after( null, $override );
 	}
 
 	public function test_nested_request_keeps_the_outer_override(): void {
@@ -75,21 +77,27 @@ final class RestTest extends TestCase {
 		$outer    = new WP_REST_Request( '/wp/v2/posts/1', [], [ 'x-wp-api-fetch-from-editor' => 'true' ] );
 		$inner    = new WP_REST_Request( '/wp/v2/media/5' );
 
-		Rest::before( null, $override, $outer );
-		Rest::before( null, $override, $inner );
-		Rest::after( null, $override );
+		$this->rest->before( null, $override, $outer );
+		$this->rest->before( null, $override, $inner );
+		$this->rest->after( null, $override );
 		$this->assertTrue( $this->active, 'Inner request must not switch Tachyon back on.' );
 
-		Rest::after( null, $override );
+		$this->rest->after( null, $override );
 		$this->assertFalse( $this->active );
 	}
 
 	private function run_request( WP_REST_Request $request, bool $original ): void {
 		$override = [ self::class, 'override' ];
 
-		$this->assertSame( 'response', Rest::before( 'response', $override, $request ) );
+		$this->assertSame( 'response', $this->rest->before( 'response', $override, $request ) );
 		$this->assertSame( $original, $this->active );
-		$this->assertSame( 'response', Rest::after( 'response', $override ) );
+		$this->assertSame( 'response', $this->rest->after( 'response', $override ) );
 		$this->assertFalse( $this->active );
+	}
+
+	public function test_editor_script_sends_the_header_rest_reads(): void {
+		$script = (string) file_get_contents( dirname( __DIR__ ) . '/assets/js/editor.js' );
+		$this->assertSame( 1, preg_match( "/var HEADER = '([^']+)';/", $script, $match ), 'editor.js must declare its header name.' );
+		$this->assertSame( Rest::EDITOR_HEADER, $match[1] );
 	}
 }

@@ -2,6 +2,9 @@
 /**
  * Block editor middleware loader (Deviation 7).
  *
+ * This is the client half of Deviation 7. Rest is the server half: it gives
+ * requests marked with Rest::EDITOR_HEADER original image URLs.
+ *
  * @package TachyonEdgeImages
  */
 
