@@ -1,0 +1,34 @@
+{
+	"name": "soderlind/tachyon-edge-images",
+	"type": "wordpress-plugin",
+	"description": "Serve WordPress images through a Tachyon server. Compatible with tachyon-plugin.",
+	"keywords": [ "wordpress-plugin", "tachyon", "images", "cdn" ],
+	"homepage": "https://github.com/soderlind/tachyon-edge-images",
+	"license": "GPL-2.0-or-later",
+	"authors": [ { "name": "Per Soderlind", "homepage": "https://soderlind.no" } ],
+	"require": {
+		"php": ">=8.3"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^12.5",
+		"brain/monkey": "^2.6",
+		"pestphp/pest": "^4.5"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Soderlind\\Plugin\\TachyonEdgeImages\\": "includes/",
+			"Soderlind\\Plugin\\TachyonEdgeImages\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"platform": { "php": "8.3.0" },
+		"allow-plugins": { "pestphp/pest-plugin": true }
+	},
+	"scripts": {
+		"test": "phpunit",
+		"test:pest": "pest -c phpunit.xml.dist",
+		"test:js": "node --test tests/js/*.test.js",
+		"test:differential": "bash tests/differential/run.sh",
+		"lint": "find . -name '*.php' -not -path './vendor/*' -not -path './tests/differential/.work/*' -print0 | xargs -0 -n1 php -l"
+	}
+}
