@@ -4,7 +4,7 @@ Tags: tachyon, images, cdn, resize, cloudflare
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,9 @@ Yes. Deactivate Tachyon Edge Images first, then activate tachyon-plugin. With Ta
 No. Any Tachyon server works.
 
 == Changelog ==
+
+= 0.2.0 =
+* Internal: the sizing paths share Image Facts, content rewriting is split into steps, and the REST editor check keeps its state on an instance. More unit tests. No change in output.
 
 = 0.1.0 =
 * First release: a compatible replacement for tachyon-plugin 0.11.1 with seven bug fixes, Stand-down and a Site Health test.
