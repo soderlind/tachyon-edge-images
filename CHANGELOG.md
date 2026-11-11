@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES` constant and `tachyon_edge_images_keep_unattached_filenames` filter: a content image with no identified attachment keeps its `-WxH` file name suffix, for originals named like `photo-900x600.jpg` (humanmade/tachyon-plugin#43).
+- Opt-in `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN` constant and `tachyon_edge_images_preserve_at_sign` filter: `tachyon_url()` keeps `@` in file names instead of encoding it as `%40` (humanmade/tachyon-plugin#23).
+
+### Fixed
+
+- `image_downsize` no longer warns about undefined `width`/`height` keys when attachment metadata lacks dimensions. It leaves the image to WordPress, as with missing metadata (Deviation 3).
+
 ## [0.2.0] - 2026-11-09
 
 ### Internal

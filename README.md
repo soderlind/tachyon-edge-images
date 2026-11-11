@@ -38,6 +38,12 @@ define( 'TACHYON_SERVER_VERSION', '3.0.0' );
 
 // Optional: add arguments to URLs that already point at the Tachyon server (default false).
 define( 'TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS', true );
+
+// Optional: keep `-300x200` in content image file names when no attachment is found (default false).
+define( 'TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES', true );
+
+// Optional: keep `@` in file names instead of encoding it as `%40` (default false).
+define( 'TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN', true );
 ```
 
 Without `TACHYON_URL`, `tachyon_url()` and `tachyon_server_version()` still exist, as in tachyon-plugin, but `tachyon_url()` returns the URL unchanged and images are not rewritten.
@@ -60,7 +66,7 @@ Deviations fix output no working site can depend on. They are always on.
 
 1. **Escaped link URLs.** An image link whose URL contains regex characters, such as `photo(1).jpg`, is now rewritten to Tachyon. tachyon-plugin used the URL as a regex pattern and left the link alone.
 2. **Size detection per image.** Each image in the content starts with a fresh size filter, and size detection passes the size name (`medium`) to filters, not the size settings array. tachyon-plugin carried the filter over from the previous image.
-3. **No warnings or empty resizes.** Missing image sources, metadata or `TACHYON_URL` no longer cause PHP warnings, errors, or `resize=,` / `fit=,` arguments.
+3. **No warnings or empty resizes.** Missing image sources, metadata or `TACHYON_URL` no longer cause PHP warnings, errors, or `resize=,` / `fit=,` arguments. Metadata without a width and height is treated as missing, so `image_downsize` leaves the image to WordPress.
 4. **`&` after an existing query.** String arguments are joined with `&` when the URL already has a query (`photo.jpg?ver=2&w=300`, not `?ver=2?w=300`).
 5. **Arguments before the fragment.** String arguments go before a `#fragment` (`photo.jpg?w=300#top`, not `#top?w=300`).
 6. **No double encoding.** An already-encoded file name (`my%20photo.jpg`) is not encoded again (`my%2520photo.jpg`).
@@ -71,6 +77,8 @@ Deviations fix output no working site can depend on. They are always on.
 Odd tachyon-plugin behaviour that is kept because sites may depend on it:
 
 - `tachyon_url()` returns a URL that already points at the Tachyon server unchanged and drops the new arguments. Set `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS` or the `tachyon_edge_images_extend_tachyon_urls` filter to add them instead.
+- A content image with no identified attachment loses a `-WxH` suffix (`photo-900x600.jpg` becomes `photo.jpg?resize=900,600`), even when the suffixed file is the original upload. Set `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES` or the `tachyon_edge_images_keep_unattached_filenames` filter to keep it.
+- `@` in a file name is encoded as `%40` (`photo%402x.jpg`). Set `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN` or the `tachyon_edge_images_preserve_at_sign` filter to keep it literal.
 - On multisite, `/sites/N` is stripped from the uploads base URL before it is replaced with `TACHYON_URL`.
 - A `size-*` class is looked up before the attachment ID is known, so it uses the global post rather than the image's attachment.
 - Matching an image's `width`/`height` attributes against attachment sizes compares strings with integers, so it never matches.
@@ -85,9 +93,11 @@ Odd tachyon-plugin behaviour that is kept because sites may depend on it:
 
 ## Filters
 
-All tachyon-plugin filters work as before. One filter is new:
+All tachyon-plugin filters work as before. These filters are new:
 
 - `tachyon_edge_images_extend_tachyon_urls` (`bool $extend, string $image_url, array|string $args`): whether `tachyon_url()` adds arguments to a URL that already points at the Tachyon server. Defaults to `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS`, or false.
+- `tachyon_edge_images_keep_unattached_filenames` (`bool $keep, string $src, string $tag`): whether a content image with no identified attachment keeps a `-WxH` file name suffix. Defaults to `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES`, or false.
+- `tachyon_edge_images_preserve_at_sign` (`bool $preserve, string $image_url`): whether `tachyon_url()` keeps a literal `@` in the file name. Defaults to `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN`, or false.
 
 ## Development
 

@@ -49,6 +49,22 @@ final class ContentTest extends SizingTestCase {
 		$this->assertSame( self::TACHYON . '/2024/01/photo.jpg?resize=300%2C150', self::src( $out ) );
 	}
 
+	public function test_unattached_filename_keeps_its_dimensions_when_opted_in(): void {
+		Filters\expectApplied( 'tachyon_edge_images_keep_unattached_filenames' )->once()->andReturn( true );
+
+		$out = Content::filter( self::img( 'photo-300x150.jpg' ) );
+
+		$this->assertSame( self::TACHYON . '/2024/01/photo-300x150.jpg?resize=300%2C150', self::src( $out ) );
+	}
+
+	public function test_attached_filename_is_stripped_even_when_opted_in(): void {
+		Filters\expectApplied( 'tachyon_edge_images_keep_unattached_filenames' )->never();
+
+		$out = Content::filter( self::img( 'photo-300x150.jpg', 'class="wp-image-' . self::ID . '"' ) );
+
+		$this->assertSame( self::TACHYON . '/2024/01/photo.jpg', self::src( $out ) );
+	}
+
 	public function test_wider_than_content_width_scales_down(): void {
 		$this->facts->content_width = 200;
 

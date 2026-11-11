@@ -77,6 +77,22 @@ final class UrlTest extends TestCase {
 		);
 	}
 
+	public function test_encodes_an_at_sign_like_the_reference_plugin(): void {
+		$this->assertSame(
+			'https://images.example.com/uploads/photo%402x.jpg?w=10',
+			Url::build( self::UPLOADS . '/photo@2x.jpg', [ 'w' => 10 ] )
+		);
+	}
+
+	public function test_keeps_an_at_sign_literal_when_opted_in(): void {
+		Filters\expectApplied( 'tachyon_edge_images_preserve_at_sign' )->once()->andReturn( true );
+
+		$this->assertSame(
+			'https://images.example.com/uploads/my+photo@2x.jpg?w=10',
+			Url::build( self::UPLOADS . '/my photo@2x.jpg', [ 'w' => 10 ] )
+		);
+	}
+
 	public function test_returns_existing_tachyon_url_unchanged_and_drops_args(): void {
 		$url = 'https://images.example.com/uploads/a.jpg?w=10';
 		$this->assertSame( $url, Url::build( $url, [ 'h' => 20 ] ) );

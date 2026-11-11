@@ -18,7 +18,7 @@ It replaces Human Made's [tachyon-plugin](https://github.com/humanmade/tachyon-p
 
 1. Image links whose URL contains regex characters, such as `photo(1).jpg`, are rewritten.
 2. Size detection starts fresh for every image and passes the size name to filters.
-3. No PHP warnings, errors or empty `resize=,` arguments for missing images, metadata or `TACHYON_URL`.
+3. No PHP warnings, errors or empty `resize=,` arguments for missing images, metadata (or metadata without dimensions) or `TACHYON_URL`.
 4. String arguments are joined with `&` when the URL already has a query.
 5. String arguments go before a `#fragment`.
 6. Already-encoded file names are not encoded twice.
@@ -40,6 +40,8 @@ Optional constants:
 
 * `TACHYON_SERVER_VERSION`: set to `3.0.0` or later to pass presigned S3 URLs to Tachyon.
 * `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS`: set to `true` to add arguments to URLs that already point at the Tachyon server.
+* `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES`: set to `true` to keep a `-300x200` file name suffix on content images with no identified attachment.
+* `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN`: set to `true` to keep `@` in file names instead of encoding it as `%40`.
 
 Switching from tachyon-plugin needs no configuration changes. Activate Tachyon Edge Images, then click **Deactivate Tachyon** in the notice.
 

@@ -151,6 +151,27 @@ final class DownsizeTest extends SizingTestCase {
 		$this->assertSame( $this->tachyon(), Downsize::filter( false, self::ID, [ 400, 400 ] )[0] );
 	}
 
+	public function test_metadata_without_dimensions_passes_image_through_without_warnings(): void {
+		// Deviation 3: the Reference Plugin warns on the missing keys and returns a 1x1 image.
+		$this->facts->metadata[ self::ID ] = [ 'file' => '2024/01/photo.jpg', 'sizes' => [] ];
+
+		$warnings = [];
+		set_error_handler(
+			static function ( int $errno, string $errstr ) use ( &$warnings ): bool {
+				$warnings[] = $errstr;
+				return true;
+			}
+		);
+		try {
+			$result = Downsize::filter( false, self::ID, 'thumb' );
+		} finally {
+			restore_error_handler();
+		}
+
+		$this->assertSame( [], $warnings );
+		$this->assertFalse( $result );
+	}
+
 	public function test_unknown_attachment_passes_image_through(): void {
 		$this->assertSame( [ 'x' ], Downsize::filter( [ 'x' ], 99, 'thumb' ) );
 	}
