@@ -69,7 +69,7 @@ final class Content {
 				}
 
 				// Build URL, first maybe removing WP's resized string so we pass the original image to Tachyon.
-				if ( ! $fullsize_url ) {
+				if ( ! $fullsize_url && ( $attachment_id || ! self::keeps_unattached_filename( $src, $tag ) ) ) {
 					$src = Images::strip_image_dimensions_maybe( $src );
 				}
 
@@ -98,6 +98,29 @@ final class Content {
 		}
 
 		return $content;
+	}
+
+	/**
+	 * Whether an image with no identified attachment keeps a `-WxH` filename suffix.
+	 *
+	 * Opt-in: the Reference Plugin strips it, and sites may rely on that. Without
+	 * attachment metadata, a suffixed file may be the original upload.
+	 *
+	 * @param string $src Image URL.
+	 * @param string $tag Image tag.
+	 * @return bool
+	 */
+	private static function keeps_unattached_filename( $src, $tag ) {
+		$default = defined( 'TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES' ) && TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES;
+
+		/**
+		 * Filters whether an image with no identified attachment keeps a `-WxH` filename suffix.
+		 *
+		 * @param bool   $keep Default false, or TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES.
+		 * @param string $src  Image URL.
+		 * @param string $tag  Image tag.
+		 */
+		return (bool) apply_filters( 'tachyon_edge_images_keep_unattached_filenames', $default, $src, $tag );
 	}
 
 	/**

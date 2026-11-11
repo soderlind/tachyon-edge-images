@@ -3,7 +3,7 @@
  * Plugin Name:       Tachyon Edge Images
  * Plugin URI:        https://github.com/soderlind/tachyon-edge-images
  * Description:       Compatible replacement for the Tachyon plugin: rewrites image URLs to a Tachyon server, with fixes for content, editor and URL bugs.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 7.0
  * Requires PHP:      8.3
  * Author:            Per Soderlind
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // This file must not declare tachyon_url() or class Tachyon: the Reference Plugin
 // declares them unguarded, so both loading at once would fatal (ADR 0002).
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const FILE    = __FILE__;
 
 spl_autoload_register(

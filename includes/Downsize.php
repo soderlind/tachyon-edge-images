@@ -56,7 +56,8 @@ final class Downsize {
 			}
 
 			// If an image is requested with a size known to WordPress, use that size's settings with Tachyon.
-			if ( ! empty( $full_size_meta ) && ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $facts->sizes() ) ) {
+			// Deviation 3: metadata without both dimensions is treated as missing.
+			if ( isset( $full_size_meta['width'], $full_size_meta['height'] ) && ( is_string( $size ) || is_int( $size ) ) && array_key_exists( $size, $facts->sizes() ) ) {
 				$image_args = $facts->sizes()[ $size ];
 
 				$tachyon_args = [];

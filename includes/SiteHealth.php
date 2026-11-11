@@ -167,6 +167,14 @@ final class SiteHealth {
 				'label' => 'TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS',
 				'value' => defined( 'TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS' ) && TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS ? 'true' : 'false',
 			],
+			'keep_filenames' => [
+				'label' => 'TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES',
+				'value' => defined( 'TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES' ) && TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES ? 'true' : 'false',
+			],
+			'preserve_at'    => [
+				'label' => 'TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN',
+				'value' => defined( 'TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN' ) && TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN ? 'true' : 'false',
+			],
 		];
 
 		foreach ( Deviations::ALL as $number => $description ) {

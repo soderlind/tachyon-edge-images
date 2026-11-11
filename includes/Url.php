@@ -45,7 +45,11 @@ final class Url {
 			$image_file = basename( (string) parse_url( $image_url, PHP_URL_PATH ) );
 			// Deviation 6: an already-encoded basename is not encoded again.
 			if ( rawurldecode( $image_file ) === $image_file ) {
-				$image_url = str_replace( $image_file, urlencode( $image_file ), $image_url );
+				$encoded = urlencode( $image_file );
+				if ( false !== strpos( $image_file, '@' ) && self::preserves_at_sign( $image_url ) ) {
+					$encoded = str_replace( '%40', '@', $encoded );
+				}
+				$image_url = str_replace( $image_file, $encoded, $image_url );
 			}
 
 			if ( strpos( $image_url, $upload_baseurl ) !== 0 ) {
@@ -155,6 +159,26 @@ final class Url {
 		 * @param array|string $args      The arguments that would be added.
 		 */
 		return (bool) apply_filters( 'tachyon_edge_images_extend_tachyon_urls', $default, $image_url, $args );
+	}
+
+	/**
+	 * Whether a literal `@` in the image basename is kept rather than encoded as `%40`.
+	 *
+	 * Opt-in: the Reference Plugin encodes it, and sites may rely on that.
+	 *
+	 * @param string $image_url Image URL.
+	 * @return bool
+	 */
+	private static function preserves_at_sign( $image_url ) {
+		$default = defined( 'TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN' ) && TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN;
+
+		/**
+		 * Filters whether tachyon_url() keeps a literal `@` in the image filename.
+		 *
+		 * @param bool   $preserve  Default false, or TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN.
+		 * @param string $image_url The image URL.
+		 */
+		return (bool) apply_filters( 'tachyon_edge_images_preserve_at_sign', $default, $image_url );
 	}
 
 	/**

@@ -71,6 +71,7 @@ if ( $configured ) {
 		'url/raw-space'              => [ null, static fn () => tachyon_url( "$uploads/2026/05/my photo.jpg", [ 'w' => 300 ] ) ],
 		'url/encoded-space'          => [ 6, static fn () => tachyon_url( "$uploads/2026/05/my%20photo.jpg", [ 'w' => 300 ] ) ],
 		'url/parens'                 => [ null, static fn () => tachyon_url( "$uploads/2026/05/photo(1).jpg", [ 'w' => 300 ] ) ],
+		'url/at-sign'                => [ null, static fn () => tachyon_url( "$uploads/2026/05/photo@2x.jpg", [ 'w' => 300 ] ) ],
 		'url/tachyon-passthrough'    => [ null, static fn () => tachyon_url( TACHYON_URL . '/2026/05/photo.jpg?w=10', [ 'h' => 20 ] ) ],
 		'url/foreign'                => [ null, static fn () => tachyon_url( 'https://cdn.example.org/photo.jpg', [ 'w' => 300 ] ) ],
 		'url/presign-unversioned'    => [ null, static fn () => tachyon_url( "$uploads/2026/05/photo.jpg?X-Amz-Signature=abc&X-Amz-Date=1", [ 'w' => 300 ] ) ],
@@ -119,6 +120,16 @@ if ( $configured ) {
 		'downsize/unknown-size'      => [ null, static fn () => wp_get_attachment_image_src( $photo, 'nope' ) ],
 		'downsize/small-png'         => [ null, static fn () => wp_get_attachment_image_src( $small, 'large' ) ],
 		'downsize/parens'            => [ null, static fn () => wp_get_attachment_image_src( $parens, 'medium' ) ],
+		'downsize/meta-no-dimensions' => [
+			3,
+			static function () use ( $photo ) {
+				$meta = static fn ( $data ) => [ 'file' => $data['file'] ?? '', 'sizes' => [] ];
+				add_filter( 'wp_get_attachment_metadata', $meta );
+				$src = wp_get_attachment_image_src( $photo, 'medium' );
+				remove_filter( 'wp_get_attachment_metadata', $meta );
+				return $src;
+			},
+		],
 
 		// srcset.
 		'image/large'                => [ null, static fn () => wp_get_attachment_image( $photo, 'large' ) ],
@@ -130,6 +141,7 @@ if ( $configured ) {
 		'content/attachment-thumb'   => [ null, $content( $img( $photo, 'photo-150x150.jpg', 'thumbnail' ) ) ],
 		'content/attachment-full'    => [ null, $content( $img( $photo, 'photo.jpg', 'full' ) ) ],
 		'content/filename-dims'      => [ 2, $content( "<img src=\"$uploads/2026/05/photo-300x225.jpg\" alt=\"\">" ) ],
+		'content/unattached-dims'    => [ 2, $content( "<img src=\"$uploads/2026/05/photo-900x600.jpg\" width=\"900\" height=\"600\" alt=\"\">" ) ],
 		'content/width-attrs'        => [ null, $content( "<img src=\"$uploads/2026/05/photo.jpg\" width=\"640\" height=\"480\" alt=\"\">" ) ],
 		'content/foreign'            => [ null, $content( '<img src="https://cdn.example.org/photo.jpg" width="10" height="10">' ) ],
 		'content/linked'             => [ null, $content( "<a href=\"$uploads/2026/05/photo.jpg\">" . $img( $photo, 'photo-1024x768.jpg', 'large' ) . '</a>' ) ],
