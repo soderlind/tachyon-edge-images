@@ -1,6 +1,8 @@
 # Tachyon Edge Images
 
-Rewrites WordPress image URLs to a [Tachyon](https://github.com/humanmade/tachyon) server. It replaces Human Made's [tachyon-plugin](https://github.com/humanmade/tachyon-plugin) (the Reference Plugin) and stays compatible with it: same functions, class, hooks and constants, and the same URLs for the same input. The exceptions are seven documented bug fixes (Deviations).
+Tachyon Edge Images rewrites WordPress image URLs so images are served, resized, by a [Tachyon](https://github.com/humanmade/tachyon) server.
+
+It is a drop-in replacement for Human Made's [tachyon-plugin](https://github.com/humanmade/tachyon-plugin) (called the Reference Plugin in the code and docs). It has the same functions, class, hooks and constants, and produces the same URLs. The only differences are seven bug fixes, listed under [Bug fixes](#bug-fixes-deviations).
 
 It works with any Tachyon server, including [Tachyon Edge](https://github.com/soderlind/tachyon-edge) on Cloudflare. Pair it with [Tachyon R2](https://github.com/soderlind/tachyon-r2) to store the images in R2.
 
@@ -13,91 +15,98 @@ It works with any Tachyon server, including [Tachyon Edge](https://github.com/so
 ## Install
 
 1. Download `tachyon-edge-images.zip` from the [latest release](https://github.com/soderlind/tachyon-edge-images/releases/latest) and upload it in **Plugins → Add New → Upload Plugin**.
-2. Add `TACHYON_URL` to `wp-config.php` (see below).
+2. Add `TACHYON_URL` to `wp-config.php` (see [Configure](#configure)).
 3. Activate the plugin.
 
 ### Switching from tachyon-plugin
 
-No configuration changes are needed: Tachyon Edge Images reads the same constants.
+You don't need to change any settings: Tachyon Edge Images reads the same constants.
 
-1. Activate Tachyon Edge Images. While tachyon-plugin is active, Tachyon Edge Images does nothing (Stand-down) and shows an admin notice.
+1. Activate Tachyon Edge Images. While tachyon-plugin is still active, Tachyon Edge Images does nothing and shows an admin notice. This is called Stand-down.
 2. Click **Deactivate Tachyon** in the notice, or deactivate tachyon-plugin on the Plugins screen.
 
-Tachyon Edge Images never deactivates tachyon-plugin by itself. If tachyon-plugin is a must-use plugin or loaded through Composer, the notice tells you to remove it. On multisite, a network-activated tachyon-plugin must be deactivated by a network administrator.
+Tachyon Edge Images never deactivates tachyon-plugin on its own. If tachyon-plugin is a must-use plugin or loaded through Composer, the notice tells you to remove it. On multisite, a network administrator must deactivate a network-activated tachyon-plugin.
 
-To switch back, deactivate Tachyon Edge Images first. With Tachyon Edge Images running, activating tachyon-plugin fails: WordPress reports a fatal error (`Cannot redeclare tachyon_url()`) and refuses the activation. The site is not affected.
+To switch back, deactivate Tachyon Edge Images first. While it is active, WordPress refuses to activate tachyon-plugin, because both plugins define `tachyon_url()`. The site keeps working.
 
 ## Configure
 
+Add the constants to `wp-config.php`. There is no settings page.
+
 ```php
-// Required: the Tachyon server URL that replaces the uploads base URL.
+// Required: the Tachyon server URL that replaces the uploads URL.
 define( 'TACHYON_URL', 'https://images.example.com/wp-content/uploads' );
 
 // Optional: the Tachyon server version. 3.0.0 or later enables presigned S3 URLs.
 define( 'TACHYON_SERVER_VERSION', '3.0.0' );
-
-// Optional: add arguments to URLs that already point at the Tachyon server (default false).
-define( 'TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS', true );
-
-// Optional: keep `-300x200` in content image file names when no attachment is found (default false).
-define( 'TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES', true );
-
-// Optional: keep `@` in file names instead of encoding it as `%40` (default false).
-define( 'TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN', true );
 ```
 
-Without `TACHYON_URL`, `tachyon_url()` and `tachyon_server_version()` still exist, as in tachyon-plugin, but `tachyon_url()` returns the URL unchanged and images are not rewritten.
+Without `TACHYON_URL`, images are not rewritten. `tachyon_url()` and `tachyon_server_version()` still exist, as in tachyon-plugin, and `tachyon_url()` returns the URL unchanged.
 
-There is no settings page.
+### Optional fixes
 
-## Compatibility
+These fixes change URLs that a site may depend on, so they are off by default. Set a constant to `true` to turn one on for the whole site, or use its [filter](#filters) to decide per image.
 
-Tachyon Edge Images has the same Public API as tachyon-plugin 0.11.1:
+| Constant | What changes when it is `true` |
+| --- | --- |
+| `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS` | `tachyon_url()` adds the arguments you pass to a URL that already points at the Tachyon server. By default, the URL is returned unchanged and the arguments are dropped. |
+| `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES` | An image in post content that is not linked to a Media Library item keeps a size ending in its file name: `photo-900x600.jpg` stays `photo-900x600.jpg`. By default, the ending is removed (`photo.jpg?resize=900,600`), which breaks the image if `photo.jpg` doesn't exist. |
+| `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN` | `@` in a file name stays as it is: `photo@2x.jpg`. By default, it is encoded as `photo%402x.jpg`. |
 
-- Functions `tachyon_url( $image_url, $args = [], $scheme = null )` and `tachyon_server_version()`.
-- `class Tachyon` (`Tachyon::instance()`) with the same methods, properties and visibility, registered on the same hooks at the same priorities.
+## Differences from tachyon-plugin
+
+Tachyon Edge Images has the same public API as tachyon-plugin 0.11.1:
+
+- The functions `tachyon_url( $image_url, $args = [], $scheme = null )` and `tachyon_server_version()`.
+- `class Tachyon` (`Tachyon::instance()`), with the same methods, properties and visibility, on the same hooks and priorities.
 - The same `tachyon_*` filters with the same arguments: `tachyon_skip_for_url`, `tachyon_pre_image_url`, `tachyon_pre_args`, `tachyon_url`, `tachyon_server_version`, `tachyon_skip_image`, `tachyon_image_is_local`, `tachyon_post_image_args`, `tachyon_remove_size_attributes`, `tachyon_disable_in_admin`, `tachyon_override_image_downsize`, `tachyon_image_downsize_string`, `tachyon_image_downsize_array`, `tachyon_srcset_image_args` and `tachyon_validate_image_url`.
 
-Every pull request runs a differential test that executes the same cases against tachyon-plugin (pinned at `652ecd2`) and Tachyon Edge Images in a real WordPress. It compares the output, the `tachyon_*` filter calls and their arguments, the hook registrations and the class signature. Cases tagged with a Deviation must differ; all others must be identical.
+A test on every pull request checks this against tachyon-plugin (see [Development](#development)).
 
-### Deviations
+### Bug fixes (Deviations)
 
-Deviations fix output no working site can depend on. They are always on.
+These fixes only change output that was broken, so no working site can depend on the old behavior. They are always on.
 
-1. **Escaped link URLs.** An image link whose URL contains regex characters, such as `photo(1).jpg`, is now rewritten to Tachyon. tachyon-plugin used the URL as a regex pattern and left the link alone.
-2. **Size detection per image.** Each image in the content starts with a fresh size filter, and size detection passes the size name (`medium`) to filters, not the size settings array. tachyon-plugin carried the filter over from the previous image.
-3. **No warnings or empty resizes.** Missing image sources, metadata or `TACHYON_URL` no longer cause PHP warnings, errors, or `resize=,` / `fit=,` arguments. Metadata without a width and height is treated as missing, so `image_downsize` leaves the image to WordPress.
-4. **`&` after an existing query.** String arguments are joined with `&` when the URL already has a query (`photo.jpg?ver=2&w=300`, not `?ver=2?w=300`).
-5. **Arguments before the fragment.** String arguments go before a `#fragment` (`photo.jpg?w=300#top`, not `#top?w=300`).
-6. **No double encoding.** An already-encoded file name (`my%20photo.jpg`) is not encoded again (`my%2520photo.jpg`).
-7. **Original images in the block editor.** REST requests from the block editor get original image URLs, not resized Tachyon URLs, so the editor shows the full image. A nested REST request no longer switches Tachyon back on too early. A small editor script marks the editor's requests.
+1. **Image links with special characters.** A link around an image, such as `photo(1).jpg`, now points at Tachyon too. tachyon-plugin read the URL as a regular expression and left the link unchanged.
+2. **Each image gets its own size.** The size found for one image in a post no longer affects the images after it. Filters get the size name (`medium`), not the size settings.
+3. **No PHP warnings or broken sizes.** A missing image, missing image metadata, or a missing `TACHYON_URL` no longer causes PHP warnings, fatal errors, or empty sizes such as `resize=,`. Metadata without a width and height counts as missing.
+4. **`&` after an existing query.** Arguments passed as a string are added with `&` when the URL already has a query: `photo.jpg?ver=2&w=300`, not `photo.jpg?ver=2?w=300`.
+5. **Arguments before `#`.** Arguments passed as a string go before a fragment: `photo.jpg?w=300#top`, not `photo.jpg#top?w=300`.
+6. **No double encoding.** An already-encoded file name such as `my%20photo.jpg` is not encoded again into `my%2520photo.jpg`.
+7. **Full images in the block editor.** The block editor shows the original image, not a resized Tachyon copy. This also works when one REST request runs inside another.
 
-### Plugin Quirks
+### Kept quirks (Plugin Quirks)
 
-Odd tachyon-plugin behaviour that is kept because sites may depend on it:
+These are odd tachyon-plugin behaviors that are kept because sites may depend on them:
 
-- `tachyon_url()` returns a URL that already points at the Tachyon server unchanged and drops the new arguments. Set `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS` or the `tachyon_edge_images_extend_tachyon_urls` filter to add them instead.
-- A content image with no identified attachment loses a `-WxH` suffix (`photo-900x600.jpg` becomes `photo.jpg?resize=900,600`), even when the suffixed file is the original upload. Set `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES` or the `tachyon_edge_images_keep_unattached_filenames` filter to keep it.
-- `@` in a file name is encoded as `%40` (`photo%402x.jpg`). Set `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN` or the `tachyon_edge_images_preserve_at_sign` filter to keep it literal.
-- On multisite, `/sites/N` is stripped from the uploads base URL before it is replaced with `TACHYON_URL`.
-- A `size-*` class is looked up before the attachment ID is known, so it uses the global post rather than the image's attachment.
-- Matching an image's `width`/`height` attributes against attachment sizes compares strings with integers, so it never matches.
+- `tachyon_url()` returns a Tachyon URL unchanged and ignores new arguments. See [Optional fixes](#optional-fixes).
+- A size ending such as `-900x600` is removed from the file name of an image that is not in the Media Library. See [Optional fixes](#optional-fixes).
+- `@` in a file name is encoded as `%40`. See [Optional fixes](#optional-fixes).
+- On multisite, `/sites/N` is removed from the uploads URL before it is replaced with `TACHYON_URL`.
+- An image's `size-*` class is looked up against the current post, not the image's attachment, because the attachment is not known yet at that point.
+- An image's `width` and `height` attributes never match an attachment size, because they are compared as text with numbers.
 
 ### Known limitations
 
-- Subclassing `Tachyon` to override its protected static helpers (`image_sizes()`, `strip_image_dimensions_maybe()`) has no effect: the internals call the helpers directly.
+- Subclassing `Tachyon` to override its protected static helpers (`image_sizes()`, `strip_image_dimensions_maybe()`) has no effect, because the plugin calls the helpers directly.
 
 ## Site Health
 
-**Tools → Site Health** shows whether Tachyon Edge Images is active, standing down, or missing `TACHYON_URL`. It also requests the latest uploaded image through the Tachyon server, and reports a problem if it doesn't get an image back. The **Info** tab lists the version, configuration and Deviations.
+**Tools → Site Health** shows whether Tachyon Edge Images is active, in Stand-down, or missing `TACHYON_URL`. It also fetches the latest uploaded image through the Tachyon server, and reports a problem if no image comes back. The **Info** tab lists the version, the constants and the bug fixes.
 
 ## Filters
 
-All tachyon-plugin filters work as before. These filters are new:
+All tachyon-plugin filters work as before. Each new filter controls one of the [optional fixes](#optional-fixes). It receives the constant's value (or `false`) and returns `true` to turn the fix on:
 
-- `tachyon_edge_images_extend_tachyon_urls` (`bool $extend, string $image_url, array|string $args`): whether `tachyon_url()` adds arguments to a URL that already points at the Tachyon server. Defaults to `TACHYON_EDGE_IMAGES_EXTEND_TACHYON_URLS`, or false.
-- `tachyon_edge_images_keep_unattached_filenames` (`bool $keep, string $src, string $tag`): whether a content image with no identified attachment keeps a `-WxH` file name suffix. Defaults to `TACHYON_EDGE_IMAGES_KEEP_UNATTACHED_FILENAMES`, or false.
-- `tachyon_edge_images_preserve_at_sign` (`bool $preserve, string $image_url`): whether `tachyon_url()` keeps a literal `@` in the file name. Defaults to `TACHYON_EDGE_IMAGES_PRESERVE_AT_SIGN`, or false.
+- `tachyon_edge_images_extend_tachyon_urls( bool $extend, string $image_url, array|string $args )`
+- `tachyon_edge_images_keep_unattached_filenames( bool $keep, string $src, string $tag )`
+- `tachyon_edge_images_preserve_at_sign( bool $preserve, string $image_url )`
+
+For example, to keep `@` only for retina images:
+
+```php
+add_filter( 'tachyon_edge_images_preserve_at_sign', fn ( $preserve, $url ) => str_contains( $url, '@2x.' ), 10, 2 );
+```
 
 ## Development
 
@@ -108,6 +117,8 @@ composer test:js            # Editor script (node --test)
 composer test:differential  # Compare with tachyon-plugin in a throwaway WordPress (needs WP-CLI)
 composer lint
 ```
+
+The differential test runs the same cases through tachyon-plugin (pinned at `652ecd2`) and Tachyon Edge Images in a real WordPress. It compares the output, the `tachyon_*` filter calls and their arguments, the hook registrations and the class signature. A case tagged with a bug fix number must differ; every other case must be identical. It runs on every pull request.
 
 The differential test downloads WordPress, the SQLite database drop-in and tachyon-plugin into `tests/differential/.work/`. Set `DIFF_REUSE=1` to reuse that install, or `REFERENCE_DIR=../tachyon-plugin` to use a local checkout.
 
